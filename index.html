@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="bs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Tracker - Tvoja lična biblioteka</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Navigacijska traka / Zaglavlje -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="#" class="logo" id="logoLink" onclick="setFilter('reading')">
+        <div class="logo-icon">📚</div>
+        <div class="logo-text">
+          <h1>BookTracker</h1>
+          <span>Evidencija i preporuke knjiga</span>
+        </div>
+      </a>
+
+      <!-- Desni dio zaglavlja (vidljiv samo kada je korisnik prijavljen) -->
+      <div id="userNavSection" class="user-nav-section" style="display: none;">
+        <div class="user-badge">
+          <div class="user-avatar-circle" id="userAvatarLetter">K</div>
+          <span id="userNameDisplay">Korisnik</span>
+        </div>
+        <button id="backupModalBtn" class="btn btn-secondary btn-sm" title="Rezervna kopija i prenos podataka">
+          💾 Rezervna kopija
+        </button>
+        <button id="logoutBtn" class="btn btn-danger btn-sm" title="Odjavi se">
+          Odjavi se
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Glavni sadržaj -->
+  <main class="main-content">
+
+    <!-- EKRAN ZA AUTENTIFIKACIJU (Prikazuje se ako korisnik NIJE prijavljen) -->
+    <section id="authSection" class="auth-wrapper">
+      <div class="auth-header">
+        <div class="auth-logo-icon">📖</div>
+        <h2>Dobrodošli u BookTracker</h2>
+        <p>Pratite svoje čitanje, pretražujte milione knjiga sa interneta i pronađite novu omiljenu priču.</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="tabLoginBtn" class="auth-tab-btn active" onclick="switchAuthTab('login')">Prijava</button>
+        <button id="tabRegisterBtn" class="auth-tab-btn" onclick="switchAuthTab('register')">Registracija</button>
+      </div>
+
+      <div class="auth-body">
+        <!-- Forma za prijavu -->
+        <form id="loginForm" onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <label for="loginUsername">Korisničko ime</label>
+            <input type="text" id="loginUsername" required placeholder="Unesite vaše korisničko ime" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Lozinka</label>
+            <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Prijavi se</button>
+        </form>
+
+        <!-- Forma za registraciju (Novi korisnici počinju sa 100% čistom bibliotekom!) -->
+        <form id="registerForm" onsubmit="handleRegister(event)" style="display: none;">
+          <div class="form-group">
+            <label for="regFullName">Vaše ime ili nadimak</label>
+            <input type="text" id="regFullName" required placeholder="npr. Ana B." autocomplete="name">
+          </div>
+          <div class="form-group">
+            <label for="regUsername">Korisničko ime</label>
+            <input type="text" id="regUsername" required placeholder="npr. anab" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="regPassword">Lozinka</label>
+            <input type="password" id="regPassword" required placeholder="Minimalno 4 karaktera" autocomplete="new-password">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Kreiraj račun</button>
+        </form>
+
+        <!-- Brzi test bez registracije -->
+        <div class="demo-account-box">
+          <p>Želite samo isprobati aplikaciju sa nekoliko oglednih knjiga?</p>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="loginDemoUser()">
+            ⚡ Isprobaj sa demo računom
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GLAVNI DASHBOARD (Prikazuje se SAMO kada je korisnik prijavljen) -->
+    <section id="dashboardSection" style="display: none;">
+      
+      <!-- Statistika čitanja -->
+      <div class="stats-grid">
+        <div class="stat-card" onclick="setFilter('reading')">
+          <div class="stat-icon amber">⏳</div>
+          <div class="stat-info">
+            <h3 id="statReadingBooks">0</h3>
+            <p>Trenutno čitam (Glavna)</p>
+          </div>
+        </div>
+        <div class="stat-card" onclick="setFilter('completed')">
+          <div class="stat-icon green">✅</div>
+          <div class="stat-info">
+            <h3 id="statCompletedBooks">0</h3>
+            <p>Pročitano knjiga</p>
+          </div>
+        </div>
+        <div class="stat-card" onclick="setFilter('plan')">
+          <div class="stat-icon blue">📌</div>
+          <div class="stat-info">
+            <h3 id="statPlanBooks">0</h3>
+            <p>Želim pročitati</p>
+          </div>
+        </div>
+        <div class="stat-card" onclick="setFilter('favorites')">
+          <div class="stat-icon rose">❤️</div>
+          <div class="stat-info">
+            <h3 id="statFavBooks">0</h3>
+            <p>Omiljene knjige</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Akciona traka (Toolbar sa pretragom i filterima) -->
+      <div class="toolbar-card">
+        <div class="toolbar-top">
+          <!-- Pametna forma za pretragu -->
+          <form class="search-form-wrapper" onsubmit="handleSearchSubmit(event)">
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="searchInput" placeholder="Unesite naziv knjige ili autora (npr. Zločin i kazna, Ivo Andrić)..." oninput="handleSearchInput(this.value)">
+              <button type="button" id="searchClearBtn" class="search-clear-btn" onclick="clearSearch()" title="Obriši pretragu">&times;</button>
+            </div>
+            <button type="submit" class="btn btn-primary" style="flex-shrink: 0;">
+              🔍 Pretraži
+            </button>
+          </form>
+
+          <!-- Glavna dugmad -->
+          <div class="toolbar-actions">
+            <button class="btn btn-success" onclick="openAddBookModal()">
+              <span>+</span> Dodaj novu knjigu
+            </button>
+            <a href="#recommendationsArea" class="btn btn-secondary">
+              💡 Prijedlozi za čitanje
+            </a>
+          </div>
+        </div>
+
+        <!-- Filteri po odjeljcima i sortiranje -->
+        <div class="toolbar-filters">
+          <div class="filter-tabs">
+            <!-- Glavna stranica: "Trenutno čitam" -->
+            <button class="filter-btn active" data-filter="reading" onclick="setFilter('reading')">
+              📖 Trenutno čitam <span class="count-badge" id="badgeReading">0</span>
+            </button>
+            <button class="filter-btn" data-filter="completed" onclick="setFilter('completed')">
+              ✅ Pročitane knjige <span class="count-badge" id="badgeCompleted">0</span>
+            </button>
+            <button class="filter-btn" data-filter="plan" onclick="setFilter('plan')">
+              📌 Želim pročitati <span class="count-badge" id="badgePlan">0</span>
+            </button>
+            <button class="filter-btn" data-filter="favorites" onclick="setFilter('favorites')">
+              ❤️ Omiljene <span class="count-badge" id="badgeFav">0</span>
+            </button>
+            <button class="filter-btn" data-filter="online" onclick="setFilter('online')">
+              🌐 Istraži internet bazu
+            </button>
+          </div>
+
+          <div class="select-filters" id="localFiltersSelectGroup">
+            <!-- Filter po žanru -->
+            <select id="genreFilterSelect" onchange="handleGenreFilter(this.value)" aria-label="Filtriraj po žanru">
+              <option value="all">Svi žanrovi</option>
+              <option value="Roman">Roman</option>
+              <option value="Triler i misterija">Triler i misterija</option>
+              <option value="Fantastika i SF">Fantastika i SF</option>
+              <option value="Psihologija i razvoj">Psihologija i razvoj</option>
+              <option value="Klasici">Klasici</option>
+              <option value="Istorija i biografija">Istorija i biografija</option>
+              <option value="Ostalo">Ostalo</option>
+            </select>
+
+            <!-- Sortiranje -->
+            <select id="sortBySelect" onchange="handleSort(this.value)" aria-label="Sortiraj knjige">
+              <option value="newest">Najnovije dodano</option>
+              <option value="titleAsc">Naziv (A - Z)</option>
+              <option value="authorAsc">Autor (A - Z)</option>
+              <option value="progressDesc">Najveći napredak (%)</option>
+              <option value="ratingDesc">Najviša ocjena ⭐</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- REZULTATI PRETRAGE SA INTERNETA (Prikazuje se tokom pretrage ili u online tabu) -->
+      <div id="onlineSearchArea" class="online-search-section" style="display: none;">
+        <div class="online-search-header">
+          <h3>
+            <span>🌐</span> Knjige pronađene na internetu (OpenLibrary & Google Books)
+            <span id="onlineLoadingSpinner" class="spinner" style="display: none; width: 18px; height: 18px;"></span>
+          </h3>
+          <span id="onlineResultCount" style="font-size: 0.85rem; color: var(--text-muted);"></span>
+        </div>
+        <div id="onlineResultsGrid" class="online-results-grid">
+          <!-- Ovdje se dinamički ubacuju knjige sa interneta -->
+        </div>
+      </div>
+
+      <!-- Naslov trenutnog odjeljka -->
+      <div class="section-banner-title">
+        <div>
+          <h2 id="currentSectionTitle">📖 Knjige koje trenutno čitate</h2>
+          <p id="currentSectionSubtitle">Fokusirajte se na knjige koje su trenutno u toku.</p>
+        </div>
+      </div>
+
+      <!-- Mreža sa korisničkim knjigama (Book Grid) -->
+      <div id="booksGrid" class="books-grid">
+        <!-- Kartice knjiga se dinamički prikazuju ovdje -->
+      </div>
+
+      <!-- ==========================================================================
+           SEKCIJA: Pametni prijedlozi za naredne knjige sa interneta
+           ========================================================================== -->
+      <section id="recommendationsArea" class="recommendations-section">
+        <div class="rec-header">
+          <div>
+            <h2>💡 Prijedlozi za naredne knjige sa interneta</h2>
+            <p>Prijedlozi prilagođeni piscima i žanrovima koje trenutno čitate sa stvarnim slikama korica.</p>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="fetchSmartRecommendations(true)">
+              🔄 Osvježi preporuke
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="pickRandomBookRecommendation()">
+              🎲 Slučajni odabir za mene
+            </button>
+          </div>
+        </div>
+
+        <!-- Pametni kontekst: Objašnjenje zašto se ove knjige preporučuju -->
+        <div id="smartContextBanner" class="smart-context-banner">
+          <div class="banner-text" id="smartContextText">
+            🎯 Preporuke prilagođene vašem čitanju.
+          </div>
+          <span id="recLoadingIndicator" class="spinner" style="display: none; width: 20px; height: 20px;"></span>
+        </div>
+
+        <!-- Istaknuti slučajni odabir -->
+        <div id="luckyPickBox" class="lucky-pick-box" style="display: none;">
+          <div style="display: flex; gap: 1rem; align-items: center;">
+            <div id="luckyCoverBox" style="width: 50px; height: 72px; border-radius: 4px; overflow: hidden; background: #e2e8f0; flex-shrink: 0;"></div>
+            <div class="lucky-pick-info">
+              <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #166534;">🎉 Preporuka trenutka</span>
+              <h4 id="luckyTitle">Naziv knjige</h4>
+              <p id="luckyAuthor">Autor</p>
+              <p id="luckyDesc" style="font-size: 0.825rem; margin-top: 0.25rem; color: #374151;"></p>
+            </div>
+          </div>
+          <button id="luckyAddBtn" class="btn btn-success btn-sm">+ Dodaj u moju listu</button>
+        </div>
+
+        <!-- Filter kategorija za preporuke -->
+        <div class="rec-category-tabs">
+          <button class="filter-btn active" data-rectab="smart" onclick="filterRecommendations('smart', this)">🎯 Za mene (Pametno)</button>
+          <button class="filter-btn" data-rectab="same-author" onclick="filterRecommendations('same-author', this)">✍️ Isti pisac</button>
+          <button class="filter-btn" data-rectab="same-genre" onclick="filterRecommendations('same-genre', this)">🏷️ Isti žanr</button>
+          <button class="filter-btn" data-rectab="classics" onclick="filterRecommendations('Klasici', this)">Klasična književnost</button>
+          <button class="filter-btn" data-rectab="thriller" onclick="filterRecommendations('Triler i misterija', this)">Trileri i misterije</button>
+          <button class="filter-btn" data-rectab="scifi" onclick="filterRecommendations('Fantastika i SF', this)">Fantastika i SF</button>
+        </div>
+
+        <!-- Lista preporučenih knjiga sa koricama -->
+        <div id="recommendationsGrid" class="rec-grid">
+          <!-- Prijedlozi se učitavaju dinamički sa interneta -->
+        </div>
+      </section>
+
+    </section>
+
+  </main>
+
+  <!-- PODNOŽJE (Footer) -->
+  <footer class="footer">
+    <p><strong>BookTracker</strong> &copy; 2026. Jednostavna evidencija pročitanih knjiga sa internet bazom.</p>
+  </footer>
+
+  <!-- ==========================================================================
+       MODALNI DIJALOZI (Pop-up prozori)
+       ========================================================================== -->
+
+  <!-- 1. Modal: Dodavanje / Uređivanje knjige -->
+  <div id="bookModalOverlay" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="bookModalTitle">Dodaj novu knjigu</h3>
+        <button class="modal-close-btn" onclick="closeBookModal()">&times;</button>
+      </div>
+
+      <form id="bookForm" onsubmit="handleSaveBook(event)">
+        <div class="modal-body">
+          <input type="hidden" id="editBookId">
+
+          <!-- Naziv knjige -->
+          <div class="form-group">
+            <label for="bookTitleInput">Naziv knjige *</label>
+            <input type="text" id="bookTitleInput" required placeholder="npr. Na Drini ćuprija">
+          </div>
+
+          <!-- Naziv autora -->
+          <div class="form-group">
+            <label for="bookAuthorInput">Naziv autora *</label>
+            <input type="text" id="bookAuthorInput" required placeholder="npr. Ivo Andrić">
+          </div>
+
+          <!-- Žanr i Status -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bookGenreInput">Žanr</label>
+              <select id="bookGenreInput">
+                <option value="Roman">Roman</option>
+                <option value="Triler i misterija">Triler i misterija</option>
+                <option value="Fantastika i SF">Fantastika i SF</option>
+                <option value="Psihologija i razvoj">Psihologija i razvoj</option>
+                <option value="Klasici">Klasici</option>
+                <option value="Istorija i biografija">Istorija i biografija</option>
+                <option value="Ostalo">Ostalo</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="bookStatusInput">Status knjige</label>
+              <select id="bookStatusInput" onchange="handleStatusChangeInModal(this.value)">
+                <option value="reading">Čitam trenutno (Prikaz na glavnoj stranici)</option>
+                <option value="completed">Pročitano (Prikaz u pročitane knjige)</option>
+                <option value="plan">Želim pročitati (Lista želja)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stranice (Ukupno i trenutno) -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="bookTotalPages">Ukupan broj stranica *</label>
+              <input type="number" id="bookTotalPages" min="1" required placeholder="npr. 320" oninput="calculateModalPercentage()">
+            </div>
+
+            <div class="form-group">
+              <label for="bookCurrentPage">Trenutno pročitano stranica</label>
+              <input type="number" id="bookCurrentPage" min="0" value="0" placeholder="npr. 85" oninput="calculateModalPercentage()">
+            </div>
+          </div>
+
+          <!-- Prikaz proračunatog postotka -->
+          <div style="margin-bottom: 1rem; font-size: 0.85rem; color: var(--text-muted); background: var(--bg-alt); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); display: flex; justify-content: space-between;">
+            <span>Izračunati napredak:</span>
+            <strong id="modalCalculatedPercent" style="color: var(--primary);">0%</strong>
+          </div>
+
+          <!-- Slika korica (URL) -->
+          <div class="form-group">
+            <label for="bookCoverUrlInput">Slika korica (URL link sa interneta - opcionalno)</label>
+            <input type="url" id="bookCoverUrlInput" placeholder="https://... slika korica knjige">
+          </div>
+
+          <!-- Ocjena (1 do 5 zvjezdica) -->
+          <div class="form-group">
+            <label>Vaša ocjena</label>
+            <div class="star-rating-select" id="modalStarRating">
+              <span class="star-item" data-value="1" onclick="setRating(1)">★</span>
+              <span class="star-item" data-value="2" onclick="setRating(2)">★</span>
+              <span class="star-item" data-value="3" onclick="setRating(3)">★</span>
+              <span class="star-item" data-value="4" onclick="setRating(4)">★</span>
+              <span class="star-item" data-value="5" onclick="setRating(5)">★</span>
+            </div>
+            <input type="hidden" id="bookRatingInput" value="0">
+          </div>
+
+          <!-- Bilješke / Utisci -->
+          <div class="form-group">
+            <label for="bookNotesInput">Bilješke ili kratki utisak</label>
+            <textarea id="bookNotesInput" rows="2" placeholder="Napišite svoje misli, omiljeni citat ili zapažanje o knjizi..."></textarea>
+          </div>
+
+          <!-- Oznaka za Favourites (Omiljeno) -->
+          <div class="form-group">
+            <label class="checkbox-group">
+              <input type="checkbox" id="bookFavoriteInput">
+              <span>❤️ Dodaj ovu knjigu u moje omiljene (Favourites)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeBookModal()">Odustani</button>
+          <button type="submit" class="btn btn-primary" id="saveBookBtn">Sačuvaj knjigu</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Modal: Brzo ažuriranje trenutne stranice -->
+  <div id="quickUpdateModalOverlay" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3>Ažuriraj napredak</h3>
+        <button class="modal-close-btn" onclick="closeQuickUpdateModal()">&times;</button>
+      </div>
+      <form id="quickUpdateForm" onsubmit="handleQuickUpdateSubmit(event)">
+        <div class="modal-body">
+          <input type="hidden" id="quickUpdateBookId">
+          <p id="quickUpdateBookTitle" style="font-weight: 600; margin-bottom: 0.75rem; color: var(--text-main);"></p>
+          <div class="form-group">
+            <label for="quickUpdatePageInput">Dokle ste stigli? (Stranica)</label>
+            <input type="number" id="quickUpdatePageInput" min="0" required autofocus>
+          </div>
+          <p id="quickUpdateHelper" style="font-size: 0.85rem; color: var(--text-muted);"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeQuickUpdateModal()">Odustani</button>
+          <button type="submit" class="btn btn-primary">Ažuriraj</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. Modal: Potvrda brisanja -->
+  <div id="deleteModalOverlay" class="modal-overlay">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3 style="color: var(--danger);">Potvrda brisanja</h3>
+        <button class="modal-close-btn" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Da li ste sigurni da želite obrisati ovu knjigu sa vaše liste?</p>
+        <p id="deleteBookTitle" style="font-weight: 700; margin-top: 0.5rem; color: var(--text-main);"></p>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Ova radnja se ne može poništiti.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Odustani</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Obriši knjigu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Modal: Rezervna kopija (Export & Import) -->
+  <div id="backupModalOverlay" class="modal-overlay">
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3>💾 Rezervna kopija i prenos podataka</h3>
+        <button class="modal-close-btn" onclick="closeBackupModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+          Vaše knjige se sigurno čuvaju u memoriji vašeg računara. Ovdje možete preuzeti rezervnu kopiju (backup) ili je prebaciti na drugi računar.
+        </p>
+
+        <!-- Izvoz -->
+        <div style="background: var(--bg-alt); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.25rem;">Preuzmi rezervnu kopiju (Izvoz)</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Sačuvajte sve svoje knjige u jednu datoteku na računaru.</p>
+          <button class="btn btn-primary btn-sm" onclick="exportUserData()">
+            📥 Preuzmi moje podatke (.json)
+          </button>
+        </div>
+
+        <!-- Uvoz -->
+        <div style="background: var(--bg-alt); padding: 1rem; border-radius: var(--radius-md);">
+          <h4 style="font-size: 0.95rem; margin-bottom: 0.25rem;">Učitaj podatke iz datoteke (Uvoz)</h4>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem;">Učitajte prethodno sačuvanu .json datoteku.</p>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;" onchange="importUserData(event)">
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('importFileInput').click()">
+            📤 Odaberi i učitaj datoteku
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeBackupModal()">Zatvori</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Kontejner za brza obavještenja (Toast) -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Učitavanje optimizovane JavaScript logike -->
+  <script src="app.js"></script>
+</body>
+</html>
